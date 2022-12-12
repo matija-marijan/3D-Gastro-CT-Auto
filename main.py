@@ -1335,7 +1335,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                 auto_segm.main(work_dir)
                 
                 end = time.time()
-                print(end - start)
+                print("time = " + str(end - start))
                 
                 info_message(self, "Automatic segmentation is done. You can now see results and export images using buttons below.")
                 MainWindow.statusBar().showMessage('Automatic segmentation is done. You can see results by clicking on \"3D View of Segmented Data\".')

@@ -35,7 +35,9 @@ def main(work_dir):
     
     # plt.figure()
     # plt.plot(nat_hist)
-    # plt.title('native phase histogram')
+    # plt.title('Native phase histogram')
+    # plt.ylabel('Number of pixels [~]')
+    # plt.xlabel('Pixel intensity [~]')
     
     try:
         pks, junk = sci.find_peaks(nat_hist, height = 0.5 * max(nat_hist))
@@ -67,20 +69,12 @@ def main(work_dir):
     bin_im2_del = np.array(arr_del < 250, dtype = 'uint8')
     bone_del = bin_im1_del & bin_im2_del
     
-    bone_del = sitk.GetImageFromArray(bone_del)
-    
-    cleaned_bone_del = sitk.BinaryOpeningByReconstruction(bone_del, [3, 3, 3])
-    bone_del = sitk.BinaryClosingByReconstruction(cleaned_bone_del, [5, 5, 5])
-    
-    bone_del = sitk.GetArrayFromImage(bone_del)
-    
-    bone = bone & bone_del
-    
     bone_sitk = sitk.GetImageFromArray(bone)
     bone_sitk.SetSpacing(img_vein.GetSpacing())
     bone_sitk = sitk.Cast(bone_sitk, sitk.sitkUInt8)
+    
     cleaned_bone = sitk.BinaryOpeningByReconstruction(bone_sitk, [3, 3, 3])
-    bone_sitk - sitk.BinaryClosingByReconstruction(cleaned_bone, [5, 5, 5])
+    bone_sitk = sitk.BinaryClosingByReconstruction(cleaned_bone, [5, 5, 5])
     
     dilation_filter = sitk.BinaryDilateImageFilter()
     dilation_filter.SetKernelRadius(3)
@@ -89,6 +83,15 @@ def main(work_dir):
     bone_dilated.SetSpacing(img_del.GetSpacing())
     
     bone_dilated = sitk.GetArrayFromImage(bone_dilated)
+    
+    bone = bone_del & bone_dilated
+    
+    bone_sitk = sitk.GetImageFromArray(bone)
+    bone_sitk.SetSpacing(img_vein.GetSpacing())
+    bone_sitk = sitk.Cast(bone_sitk, sitk.sitkUInt8)
+    
+    cleaned_bone = sitk.BinaryOpeningByReconstruction(bone_sitk, [3, 3, 3])
+    bone_sitk = sitk.BinaryClosingByReconstruction(cleaned_bone, [5, 5, 5])
     
     #%% Stone segmentation
     
@@ -118,54 +121,31 @@ def main(work_dir):
     
     # plt.figure()
     # plt.plot(vein_hist)
-    # plt.title('vein phase with no bones histogram')
+    # plt.title('Vein phase with no bones histogram')
+    # plt.ylabel('Number of pixels [~]')
+    # plt.xlabel('Pixel intensity [~]')
     
     try:
         pks, junk = sci.find_peaks(vein_hist, height = 0.15 * max(vein_hist))
     
         start_ind = pks[len(pks) - 1]
         up = start_ind
-        down = start_ind
     
         while True:
             up += 1
             if vein_hist[up] < 0.5 * vein_hist[start_ind]:
-                break  
-        
-        while True:
-            down -= 1
-            if vein_hist[down] < 0.75 * vein_hist[start_ind]:
                 break
     
-        if down > 0 and up < 250 and (up - down) >= 3:
-            liver_spleen_low_threshold = down
+        if up < 250:
             liver_spleen_high_threshold = up
         else:
-            liver_spleen_low_threshold = 121
             liver_spleen_high_threshold = 127
         
     except:
         print("Liver segmentation encountered an error. Segmentation will continue with default parameters.")
-        liver_spleen_low_threshold = 121
         liver_spleen_high_threshold = 127
         
-    print("liver low threshold = " + str(liver_spleen_low_threshold))
     print("liver high threshold = " + str(liver_spleen_high_threshold))
-        
-    bin_im4 = np.array(vein_no_bone > liver_spleen_low_threshold, dtype = 'uint8')
-    bin_im5 = np.array(vein_no_bone < liver_spleen_high_threshold, dtype = 'uint8')
-    liver_spleen = bin_im4 & bin_im5
-        
-    vein_no_liver = np.where(liver_spleen == 0, vein_no_bone, 0)
-        
-    # min_hist = vein_no_liver.min()
-    # max_hist = vein_no_liver.max()
-    # kidney_hist = ndi.histogram(vein_no_liver, min = min_hist, max = max_hist, bins = max_hist - min_hist + 1)
-    # kidney_hist[0] = 0
-    
-    # plt.figure()
-    # plt.plot(kidney_hist)
-    # plt.title('vein phase with no bones and no liver histogram')
     
     #%% Finding Kidney Segmentation Thresholds in Neighborhood of Stones
     
@@ -177,7 +157,7 @@ def main(work_dir):
     
     stone_dilated = sitk.GetArrayFromImage(stone_dilated)
     
-    kidney_ROI = np.where(stone_dilated == 0, 0, vein_no_liver)
+    kidney_ROI = np.where(stone_dilated == 0, 0, vein_no_bone)
     
     min_hist = kidney_ROI.min()
     max_hist = kidney_ROI.max()
@@ -186,7 +166,9 @@ def main(work_dir):
     
     # plt.figure()
     # plt.plot(kidney_ROI_hist)  
-    # plt.title('vein phase kidney ROI histogram')
+    # plt.title('Vein phase kidney ROI histogram')
+    # plt.ylabel('Broj piksela [~]')
+    # plt.xlabel('Intenzitet piksela [~]')
     
     #%% Kidney Segmentation
     
@@ -194,40 +176,32 @@ def main(work_dir):
         pks, junk = sci.find_peaks(kidney_ROI_hist, height = 0.25 * max(kidney_ROI_hist))
     
         start_ind = pks[len(pks) - 1]
-        up = start_ind
         down = start_ind
-    
-        while True:
-            up += 1
-            if kidney_ROI_hist[up] < 0.25 * kidney_ROI_hist[start_ind]:
-                break  
         
         while True:
             down -= 1
             if kidney_ROI_hist[down] < 0.4 * kidney_ROI_hist[start_ind]:
                 break
     
-        if down > 0 and up < 250 and (up - down) >= 3:
+        if down > 0:
             if down > liver_spleen_high_threshold + 2:
                 kidney_low_threshold = down
             else:
                 kidney_low_threshold = liver_spleen_high_threshold + 3       
-            kidney_high_threshold = up
         else:
             kidney_low_threshold = 132
-            kidney_high_threshold = 148
    
     except:
         print("Kidney segmentation encountered an error. Segmentation will continue with default parameters.")
         kidney_low_threshold = 132
-        kidney_high_threshold = 148
    
     print("kidney low threshold = " + str(kidney_low_threshold))
-    print("kidney high threshold = " + str(kidney_high_threshold))
     
-    bin_im6 = np.array(vein_no_liver > kidney_low_threshold, dtype = 'uint8')
-    bin_im7 = np.array(vein_no_liver < kidney_high_threshold, dtype = 'uint8')
+    bin_im6 = np.array(arr_del > kidney_low_threshold, dtype = 'uint8')
+    bin_im7 = np.array(arr_del < 250, dtype = 'uint8')
     kidney = bin_im6 & bin_im7
+    
+    kidney = kidney - bone_dilated
     
     kidney_sitk = sitk.GetImageFromArray(kidney)
     kidney_sitk.SetSpacing(img_vein.GetSpacing())
