@@ -36,8 +36,8 @@ def main(work_dir):
     # plt.figure()
     # plt.plot(nat_hist)
     # plt.title('Native phase histogram')
-    # plt.ylabel('Number of pixels [~]')
-    # plt.xlabel('Pixel intensity [~]')
+    # plt.ylabel('Pixel count')
+    # plt.xlabel('Pixel intensity')
     
     try:
         pks, junk = sci.find_peaks(nat_hist, height = 0.5 * max(nat_hist))
@@ -61,7 +61,15 @@ def main(work_dir):
         
     print("bone low threshold = " + str(bone_low_threshold))
     
-    bin_im1 = np.array(arr_nat > bone_low_threshold, dtype = 'uint8')
+    # plt.figure()
+    # plt.plot(nat_hist)
+    # plt.title('Histogram nativne faze')
+    # plt.vlines(x = bone_low_threshold, ymin = 0, ymax = max(nat_hist), colors = 'red')
+    # plt.vlines(x = 250, ymin = 0, ymax = max(nat_hist), colors = 'red')
+    # plt.ylabel('Broj piksela')
+    # plt.xlabel('Intenzitet piksela')
+    
+    bin_im1 = np.array(arr_nat > bone_low_threshold, dtype = 'uint8')    
     bin_im2 = np.array(arr_nat < 250, dtype = 'uint8')
     bone = bin_im1 & bin_im2
     
@@ -95,10 +103,11 @@ def main(work_dir):
     
     #%% Stone segmentation
     
-    stone = np.where(bone_dilated == 0, arr_del, 0)
-    bin_im3 = (stone > 250) * (stone < 256)
-    stone = np.zeros(arr_del.shape)
-    
+    stone = np.where(bone_dilated == 0, arr_nat, 0)
+    stone_threshold = 250
+    bin_im3 = (stone > stone_threshold) * (stone < 256)
+    stone = np.zeros(arr_nat.shape)
+
     z_top = arr_del.shape[0]//6
     z_bottom = 2 * arr_del.shape[0]//3
     for z in range(z_top, z_bottom + 1):
@@ -122,8 +131,8 @@ def main(work_dir):
     # plt.figure()
     # plt.plot(vein_hist)
     # plt.title('Vein phase with no bones histogram')
-    # plt.ylabel('Number of pixels [~]')
-    # plt.xlabel('Pixel intensity [~]')
+    # plt.ylabel('Pixel count')
+    # plt.xlabel('Pixel intensity')
     
     try:
         pks, junk = sci.find_peaks(vein_hist, height = 0.15 * max(vein_hist))
@@ -145,6 +154,13 @@ def main(work_dir):
         print("Liver segmentation encountered an error. Segmentation will continue with default parameters.")
         liver_spleen_high_threshold = 127
         
+    # plt.figure()
+    # plt.plot(vein_hist)
+    # plt.title('Histogram venske faze bez kostiju')
+    # plt.vlines(x = liver_spleen_high_threshold, ymin = 0, ymax = max(vein_hist), colors = 'red')
+    # plt.ylabel('Broj piksela')
+    # plt.xlabel('Intenzitet piksela')
+        
     print("liver high threshold = " + str(liver_spleen_high_threshold))
     
     #%% Finding Kidney Segmentation Thresholds in Neighborhood of Stones
@@ -161,14 +177,15 @@ def main(work_dir):
     
     min_hist = kidney_ROI.min()
     max_hist = kidney_ROI.max()
+    # max_hist = 255
     kidney_ROI_hist = ndi.histogram(kidney_ROI, min = min_hist, max = max_hist, bins = max_hist - min_hist + 1)
     kidney_ROI_hist[0] = 0
     
     # plt.figure()
     # plt.plot(kidney_ROI_hist)  
     # plt.title('Vein phase kidney ROI histogram')
-    # plt.ylabel('Broj piksela [~]')
-    # plt.xlabel('Intenzitet piksela [~]')
+    # plt.ylabel('Pixel count')
+    # plt.xlabel('Pixel intensity')
     
     #%% Kidney Segmentation
     
@@ -196,6 +213,14 @@ def main(work_dir):
         kidney_low_threshold = 132
    
     print("kidney low threshold = " + str(kidney_low_threshold))
+    
+    # plt.figure()
+    # plt.plot(kidney_ROI_hist)
+    # plt.title('Histogram ROI bubrega iz venske faze')
+    # plt.vlines(x = kidney_low_threshold, ymin = 0, ymax = max(kidney_ROI_hist), colors = 'red')
+    # plt.vlines(x = 250, ymin = 0, ymax = max(kidney_ROI_hist), colors = 'red')
+    # plt.ylabel('Broj piksela')
+    # plt.xlabel('Intenzitet piksela')
     
     bin_im6 = np.array(arr_del > kidney_low_threshold, dtype = 'uint8')
     bin_im7 = np.array(arr_del < 250, dtype = 'uint8')
@@ -227,3 +252,7 @@ def main(work_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     sitk.WriteImage(whole_segm_sitk, os.path.join(save_dir, "auto_segmentation.mhd"))
+    
+    np.save("native", nat_hist)
+    np.save("vein", vein_hist)
+    np.save("kidney", kidney_ROI_hist)
