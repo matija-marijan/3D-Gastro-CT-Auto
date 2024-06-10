@@ -1,22 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 10 17:28:56 2021
+Created on Mon Jun 20 23:11:47 2022
 
-@author: Katarina Milicevic, School of Electrical Engineering
+@author: Matija Marijan, School of Electrical Engineering
          Belgrade, Serbia
 
-Exporting rendered data to .jpg and .stl files
+Rendering of Automatic segmentation results         
 """
 import vtk
-import os
-from datetime import datetime
 
-def main(fileName, main_dir):
-    # Creating export directory                                          
-    exp_dir = os.path.join(main_dir, "export")
-    if not os.path.exists(exp_dir):
-        os.makedirs(exp_dir)
-    
+def main(fileName):
+
     colors = vtk.vtkNamedColors()
 
     organsMap = CreateOrgansMap()
@@ -28,53 +22,36 @@ def main(fileName, main_dir):
     renderWindow.AddRenderer(renderer)
     renderWindowInteractor = vtk.vtkRenderWindowInteractor()
     renderWindowInteractor.SetRenderWindow(renderWindow)
-    
-    appendPolydata = vtk.vtkAppendPolyData() 
 
     # Use this to ensure that the organs are selected in this order.
     organs = [
-    'heart',
     'bones',
-    'liver and spleen',
     'kidneys',
     'stone',
-    'veins'
 ]
 
     for i in range(0, len(organs)):
-        actor, normals = CreateOrganActor(fileName, organsMap[organs[i]][0])
+        actor = CreateOrganActor(fileName, organsMap[organs[i]][0])
         actor.GetProperty().SetOpacity(organsMap[organs[i]][1])
         actor.GetProperty().SetDiffuseColor(colorLut.GetTableValue(organsMap[organs[i]][0])[:3])
         actor.GetProperty().SetSpecular(.5)
         actor.GetProperty().SetSpecularPower(10)
         renderer.AddActor(actor)
-        # Collect data for stl
-        appendPolydata.AddInputConnection(normals.GetOutputPort())
 
-    # Save to stl
-    stlWriter = vtk.vtkSTLWriter()
-    stlWriter.SetInputConnection(appendPolydata.GetOutputPort())
-    stlWriter.SetFileName(generate_file_name(exp_dir,'.stl'))
-    stlWriter.Write()
+    renderer.GetActiveCamera().SetViewUp(0, 0, -1)
+    renderer.GetActiveCamera().SetPosition(0, -1, 0)
 
-    renderer.GetActiveCamera().Elevation(-90)
+    renderer.GetActiveCamera().Azimuth(210)
+    renderer.GetActiveCamera().Elevation(30)
     renderer.ResetCamera()
     renderer.ResetCameraClippingRange()
+    renderer.GetActiveCamera().Dolly(1.5)
     renderer.SetBackground(colors.GetColor3d("white"))
 
     renderWindow.SetSize(800, 800)
-    renderWindow.OffScreenRenderingOn()
     renderWindow.Render()
 
-    # Save first window view to jpg
-    vtk_win_im = vtk.vtkWindowToImageFilter()
-    vtk_win_im.SetInput(renderWindow)
-    vtk_win_im.Update()
-    vtk_image = vtk_win_im.GetOutput()
-    writer = vtk.vtkJPEGWriter()
-    writer.SetInputData(vtk_image)
-    writer.SetFileName(generate_file_name(exp_dir,'.jpg'))
-    writer.Write()
+    renderWindowInteractor.Start()
 
 
 def get_program_parameters():
@@ -93,29 +70,23 @@ def CreateColorLut():
     colors = vtk.vtkNamedColors()
 
     colorLut = vtk.vtkLookupTable()
-    colorLut.SetNumberOfColors(7)
-    colorLut.SetTableRange(0, 6)
+    colorLut.SetNumberOfColors(4)
+    colorLut.SetTableRange(0, 3)
     colorLut.Build()
 
     colorLut.SetTableValue(0, 0, 0, 0, 0)
-    colorLut.SetTableValue(1, colors.GetColor4d("red"))
-    colorLut.SetTableValue(2, colors.GetColor4d("wheat"))
-    colorLut.SetTableValue(3, colors.GetColor4d("darkred"))
-    colorLut.SetTableValue(4, colors.GetColor4d("red"))
-    colorLut.SetTableValue(5, colors.GetColor4d("lightslategray"))
-    colorLut.SetTableValue(6, colors.GetColor4d("lightslategray"))
-    
+    colorLut.SetTableValue(1, colors.GetColor4d("wheat"))
+    colorLut.SetTableValue(2, colors.GetColor4d("red"))
+    colorLut.SetTableValue(3, colors.GetColor4d("blue"))
+
     return colorLut
 
 
 def CreateOrgansMap():
     organMap = dict()
-    organMap["heart"] = [1, 0.4]
-    organMap["bones"] = [2, 1.0]
-    organMap["liver and spleen"] = [3, 0.4]
-    organMap["kidneys"] = [4, 0.4]
-    organMap["stone"] = [5, 1.0]
-    organMap["veins"] = [6, 1.0]
+    organMap["bones"] = [1, 1.0]
+    organMap["kidneys"] = [2, 0.4]
+    organMap["stone"] = [3, 1.0]
 
     return organMap
 
@@ -173,15 +144,7 @@ def CreateOrganActor(fileName, organ):
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
 
-    return actor, normals
-
-def generate_file_name(dir_path, extension):
-    n = datetime.now().strftime("%Y%m%d-%I%M%S")
-    return dir_path + '/' + n + extension
-    
-def stl_file_name():
-    n = datetime.now().strftime("%Y%m%d-%I%M%S")
-    return '/'+n+".stl"
+    return actor
 
 if __name__ == '__main__':
     main()

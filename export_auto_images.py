@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 10 17:28:56 2021
+Created on Mon Jun 20 23:11:55 2022
 
-@author: Katarina Milicevic, School of Electrical Engineering
+@author: Matija Marijan, School of Electrical Engineering
          Belgrade, Serbia
 
 Exporting rendered data to .jpg and .stl files
@@ -33,12 +33,9 @@ def main(fileName, main_dir):
 
     # Use this to ensure that the organs are selected in this order.
     organs = [
-    'heart',
     'bones',
-    'liver and spleen',
     'kidneys',
     'stone',
-    'veins'
 ]
 
     for i in range(0, len(organs)):
@@ -93,29 +90,23 @@ def CreateColorLut():
     colors = vtk.vtkNamedColors()
 
     colorLut = vtk.vtkLookupTable()
-    colorLut.SetNumberOfColors(7)
-    colorLut.SetTableRange(0, 6)
+    colorLut.SetNumberOfColors(4)
+    colorLut.SetTableRange(0, 3)
     colorLut.Build()
 
     colorLut.SetTableValue(0, 0, 0, 0, 0)
-    colorLut.SetTableValue(1, colors.GetColor4d("red"))
-    colorLut.SetTableValue(2, colors.GetColor4d("wheat"))
-    colorLut.SetTableValue(3, colors.GetColor4d("darkred"))
-    colorLut.SetTableValue(4, colors.GetColor4d("red"))
-    colorLut.SetTableValue(5, colors.GetColor4d("lightslategray"))
-    colorLut.SetTableValue(6, colors.GetColor4d("lightslategray"))
+    colorLut.SetTableValue(1, colors.GetColor4d("wheat"))
+    colorLut.SetTableValue(2, colors.GetColor4d("red"))
+    colorLut.SetTableValue(3, colors.GetColor4d("blue"))
     
     return colorLut
 
 
 def CreateOrgansMap():
     organMap = dict()
-    organMap["heart"] = [1, 0.4]
-    organMap["bones"] = [2, 1.0]
-    organMap["liver and spleen"] = [3, 0.4]
-    organMap["kidneys"] = [4, 0.4]
-    organMap["stone"] = [5, 1.0]
-    organMap["veins"] = [6, 1.0]
+    organMap["bones"] = [1, 1.0]
+    organMap["kidneys"] = [2, 0.4]
+    organMap["stone"] = [3, 1.0]
 
     return organMap
 

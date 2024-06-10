@@ -1,13 +1,21 @@
 # -*- coding: utf-8 -*-
 """
 Created on May 2021 (3D Gastro CT Tool)
-    - Link to GitHub repository: https://github.com/milicevickatarina/3D-Gastro-CT
+    - Link to GitHub repositories: https://github.com/milicevickatarina/3D-Gastro-CT
+                                 https://github.com/milicevickatarina/3D-Gastro-CT-Extended
+                                 https://github.com/matija-marijan/3D-Gastro-CT-Auto
+                                 
 Edited on Feb 2021 (3D Gastro CT Tool Ex)
     - Extended version:
         - Segmentation of delayed phase added
         - All segmentation is done in full resolution of scans (no resampling is used)
 
-@author: Katarina Milicevic, School of Electrical Engineering
+Edited on Jun 2022 (3D Gastro CT Tool Auto)
+    - Automated version:
+        - Automatic segmentation added, with 3D rendering, and exporting
+        - Various GUI changes
+
+@author: Katarina Milicevic and Matija Marijan, School of Electrical Engineering
          Belgrade, Serbia
 
 Main (Code for graphical user interface)
@@ -22,11 +30,9 @@ matplotlib.use('QT5Agg')
 import matplotlib.pylab as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-
 from index_tracker import IndexTracker
 import rendering
 import sys
-
 
 class MplCanvas(FigureCanvasQTAgg):
             def __init__(self, parent=None, width=5, height=4, dpi=100):
@@ -518,6 +524,10 @@ class kidneysSegmTab(QtWidgets.QWidget):
         xpos3, ypos3 = 1250, 420
         self.fixwidget3.setGeometry(QtCore.QRect(xpos3, ypos3, width3, height3))
         
+        self.lbl_threshold = QtWidgets.QLabel(self)
+        self.lbl_threshold.setText("For thresholds choose values which surround last peak.")
+        self.lbl_threshold.move(755, 550)
+        
         self.pushButton_showHist = QtWidgets.QPushButton("Check borders and show histogram", self)
         self.pushButton_showHist.resize(190, 30)
         self.pushButton_showHist.move(280, 350)
@@ -913,7 +923,7 @@ class StartWindow(QtWidgets.QMainWindow):
 class Ui_MainWindow(QtWidgets.QMainWindow):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.setFixedSize(800, 600)
+        MainWindow.setFixedSize(990, 600)
         MainWindow.setAutoFillBackground(False)
         MainWindow.setAnimated(False)
         icon = QtGui.QIcon()
@@ -924,29 +934,31 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.centralwidget.setObjectName("centralwidget")
         
         self.toolButton_showData = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_showData.setGeometry(QtCore.QRect(1, 0, 151, 61))
+        self.toolButton_showData.setGeometry(QtCore.QRect(1, 0, 247, 75))
         self.toolButton_showData.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
         self.toolButton_showData.setCheckable(False)
         self.toolButton_showData.setObjectName("toolButton_show")
         self.toolButton_showData.clicked.connect(self.show_data)
         
         self.toolButton_chooseWorkDir = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_chooseWorkDir.setGeometry(QtCore.QRect(151, 0, 151, 61))
+        self.toolButton_chooseWorkDir.setGeometry(QtCore.QRect(248, 0, 247, 75))
         self.toolButton_chooseWorkDir.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
         self.toolButton_chooseWorkDir.setCheckable(False)
         self.toolButton_chooseWorkDir.setObjectName("toolButton_choose")
         self.toolButton_chooseWorkDir.clicked.connect(self.choose_work_dir)
                 
         self.toolButton_readScans = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_readScans.setGeometry(QtCore.QRect(302, 0, 151, 61))
-        self.toolButton_readScans.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_readScans.setGeometry(QtCore.QRect(495, 0, 247, 75))
+        self.toolButton_readScans.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_readScans.setDisabled(True)
         self.toolButton_readScans.setCheckable(False)
         self.toolButton_readScans.setObjectName("toolButton_show")
         self.toolButton_readScans.clicked.connect(self.scan_data)
         
         self.toolButton_preproc = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_preproc.setGeometry(QtCore.QRect(453, 0, 151, 61))
-        self.toolButton_preproc.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_preproc.setGeometry(QtCore.QRect(742, 0, 247, 75))
+        self.toolButton_preproc.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_preproc.setDisabled(True)
         self.toolButton_preproc.setCheckable(False)
         self.toolButton_preproc.setObjectName("toolButton_preproc")
         self.toolButton_preproc.clicked.connect(self.preproc)
@@ -961,33 +973,36 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.left_frame.move(70, 110)
         
         self.left_label = QtWidgets.QLabel(self.centralwidget)
-        self.left_label.setText('Organ Segmentation')
+        self.left_label.setText('Manual Segmentation')
         self.left_label.setStyleSheet('QLabel {color : rgb(53, 50, 47); }')
         self.left_label.setFont(QtGui.QFont('Times', 11))
         self.left_label.move(90, 115)
         
         self.toolButton_segm = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_segm.setGeometry(QtCore.QRect(120, 160, 151, 61))
-        self.toolButton_segm.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_segm.setGeometry(QtCore.QRect(120, 160, 170, 61))
+        self.toolButton_segm.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_segm.setDisabled(True)
         self.toolButton_segm.setCheckable(False)
         self.toolButton_segm.setObjectName("toolButton_segm")
         self.toolButton_segm.clicked.connect(self.start_segm)
         
         self.toolButton_render = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_render.setGeometry(QtCore.QRect(120, 260, 151, 61))
-        self.toolButton_render.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_render.setGeometry(QtCore.QRect(120, 260, 170, 61))
+        self.toolButton_render.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_render.setDisabled(True)
         self.toolButton_render.setCheckable(False)
         self.toolButton_render.setObjectName("toolButton_render")
         self.toolButton_render.clicked.connect(self.render)
         
         self.toolButton_export = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_export.setGeometry(QtCore.QRect(120, 360, 151, 61))
-        self.toolButton_export.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_export.setGeometry(QtCore.QRect(120, 360, 170, 61))
+        self.toolButton_export.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_export.setDisabled(True)
         self.toolButton_export.setCheckable(False)
         self.toolButton_export.setObjectName("toolButton_render")
         self.toolButton_export.clicked.connect(self.export_images)
     
-        # Right Button Frame
+        # Middle Button Frame (Was "Right Button Frame" before adding Automatic Segmentation)
         self.right_frame = QtWidgets.QFrame(self.centralwidget)
         self.right_frame.setFrameShape(QtWidgets.QFrame.Box)
         self.right_frame.setFrameShadow(QtWidgets.QFrame.Plain)
@@ -997,31 +1012,73 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.right_frame.move(360, 110)
         
         self.right_label = QtWidgets.QLabel(self.centralwidget)
-        self.right_label.setText('Delayed Phase Segmentation')
+        self.right_label.setText('Delayed Segmentation')
         self.right_label.setStyleSheet('QLabel {color : rgb(53, 50, 47); }')
         self.right_label.setFont(QtGui.QFont('Times', 11))
         self.right_label.move(380, 115)
     
         self.toolButton_segm2 = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_segm2.setGeometry(QtCore.QRect(410, 160, 151, 61))
-        self.toolButton_segm2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_segm2.setGeometry(QtCore.QRect(410, 160, 170, 61))
+        self.toolButton_segm2.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_segm2.setDisabled(True)
         self.toolButton_segm2.setCheckable(False)
         self.toolButton_segm2.setObjectName("toolButton_segm")
         self.toolButton_segm2.clicked.connect(self.start_segm2)
         
         self.toolButton_render2 = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_render2.setGeometry(QtCore.QRect(410, 260, 151, 61))
-        self.toolButton_render2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_render2.setGeometry(QtCore.QRect(410, 260, 170, 61))
+        self.toolButton_render2.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_render2.setDisabled(True)
         self.toolButton_render2.setCheckable(False)
         self.toolButton_render2.setObjectName("toolButton_render")
         self.toolButton_render2.clicked.connect(self.render2)
         
         self.toolButton_export2 = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_export2.setGeometry(QtCore.QRect(410, 360, 151, 61))
-        self.toolButton_export2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+        self.toolButton_export2.setGeometry(QtCore.QRect(410, 360, 170, 61))
+        self.toolButton_export2.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_export2.setDisabled(True)
         self.toolButton_export2.setCheckable(False)
         self.toolButton_export2.setObjectName("toolButton_render")
         self.toolButton_export2.clicked.connect(self.export_images2)
+        
+        # Right Button Frame - Automatic segmentation
+        self.auto_frame = QtWidgets.QFrame(self.centralwidget)
+        self.auto_frame.setFrameShape(QtWidgets.QFrame.Box)
+        self.auto_frame.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.auto_frame.setLineWidth(1)
+        self.auto_frame.setFixedWidth(270)
+        self.auto_frame.setFixedHeight(400)
+        self.auto_frame.move(650, 110)
+        
+        self.auto_label = QtWidgets.QLabel(self.centralwidget)
+        self.auto_label.setText('Automatic Segmentation')
+        self.auto_label.setStyleSheet('QLabel {color : rgb(53, 50, 47); }')
+        self.auto_label.setFont(QtGui.QFont('Times', 11))
+        self.auto_label.move(670, 115)
+    
+        self.toolButton_segm3 = QtWidgets.QToolButton(self.centralwidget)
+        self.toolButton_segm3.setGeometry(QtCore.QRect(700, 160, 170, 61))
+        self.toolButton_segm3.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_segm3.setDisabled(True)
+        self.toolButton_segm3.setCheckable(False)
+        self.toolButton_segm3.setObjectName("toolButton_segm")
+        self.toolButton_segm3.clicked.connect(self.start_segm3)
+        
+        self.toolButton_render3 = QtWidgets.QToolButton(self.centralwidget)
+        self.toolButton_render3.setGeometry(QtCore.QRect(700, 260, 170, 61))
+        self.toolButton_render3.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_render3.setDisabled(True)
+        self.toolButton_render3.setCheckable(False)
+        self.toolButton_render3.setObjectName("toolButton_render")
+        self.toolButton_render3.clicked.connect(self.render3)
+        
+        self.toolButton_export3 = QtWidgets.QToolButton(self.centralwidget)
+        self.toolButton_export3.setGeometry(QtCore.QRect(700, 360, 170, 61))
+        self.toolButton_export3.setStyleSheet('QToolButton {background-color: darkgrey; color: #35322f;}')
+        self.toolButton_export3.setDisabled(True)
+        self.toolButton_export3.setCheckable(False)
+        self.toolButton_export3.setObjectName("toolButton_render")
+        self.toolButton_export3.clicked.connect(self.export_images3)
         
         MainWindow.setCentralWidget(self.centralwidget)
         
@@ -1038,13 +1095,12 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        MainWindow.statusBar().showMessage('This is main menu of the program. Before Data Preprocessing and Segmentation, choose work directory.')
+        MainWindow.statusBar().showMessage('Before Data Preprocessing and Segmentation, choose work directory.')
            
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "3D Gastro CT Tool"))
-        self.toolButton_showData.setText(_translate("MainWindow", "Show\n"
-                                                "Data"))
+        self.toolButton_showData.setText(_translate("MainWindow", "Show Data"))
         self.toolButton_showData.setFont(QtGui.QFont('Times', 10))
         self.toolButton_chooseWorkDir.setText(_translate("MainWindow", "Choose Work\nDirectory"))
         self.toolButton_chooseWorkDir.setFont(QtGui.QFont('Times', 10))
@@ -1070,6 +1126,14 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.toolButton_export2.setText(_translate("MainWindow", "Export\nImages"))
         self.toolButton_export2.setFont(QtGui.QFont('Times', 10))
 
+        # Automatic segmentation tool buttons
+        self.toolButton_segm3.setText(_translate("MainWindow", "Segmentation"))
+        self.toolButton_segm3.setFont(QtGui.QFont('Times', 10))
+        self.toolButton_render3.setText(_translate("MainWindow", "3D View of\nSegmented Data"))
+        self.toolButton_render3.setFont(QtGui.QFont('Times', 10))
+        self.toolButton_export3.setText(_translate("MainWindow", "Export\nImages"))
+        self.toolButton_export3.setFont(QtGui.QFont('Times', 10))
+
     def keyPressEvent(self, event):
         print(event.key())
 
@@ -1088,7 +1152,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             fig, ax = plt.subplots(1, 1)
             fig.canvas.set_window_title('Series display')
             X_tran = np.transpose(img_array, (1,2,0))
-            color_map='gray'
+            color_map = 'gray'
             title = 'Axial slices'
             self.tracker = IndexTracker(ax, X_tran, color_map, title)
             fig.canvas.mpl_connect('scroll_event', self.tracker.onscroll)
@@ -1100,20 +1164,52 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def choose_work_dir(self):
         dir = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Choose Work Directory")
         global work_dir
-        work_dir = dir
-        if dir!="":
+        if dir != '':
+            work_dir = dir 
+
+        if dir!="" or (work_dir != '' and dir == ''):
             MainWindow.statusBar().showMessage('"' + work_dir + '" is chosen for work directory. You can now proceed to next steps.')
+            
+            self.toolButton_readScans.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_readScans.setDisabled(False)
+            self.toolButton_preproc.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_preproc.setDisabled(False)
+            
+            self.toolButton_segm.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_segm.setDisabled(False)
+            self.toolButton_render.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_render.setDisabled(False)
+            self.toolButton_export.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_export.setDisabled(False)
+            
+            self.toolButton_segm2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_segm2.setDisabled(False)
+            self.toolButton_render2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_render2.setDisabled(False)
+            self.toolButton_export2.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_export2.setDisabled(False)
+            
+            self.toolButton_segm3.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_segm3.setDisabled(False)
+            self.toolButton_render3.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_render3.setDisabled(False)
+            self.toolButton_export3.setStyleSheet('QToolButton {background-color: lightgrey; color: #35322f;}')
+            self.toolButton_export3.setDisabled(False)
     
     def scan_data(self):
         print("uslo")
         if work_dir!="":
              import scan_data_processing
-             scanDir = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Scanned Data Directory")
-             print(scanDir)
+             scan_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Scanned Data Directory. If none is selected, work directory will be used")
+             print(scan_dir)
              print("Odradilo")
-             if scanDir!="":
-                 MainWindow.statusBar().showMessage('"' + scanDir + '" is chosen. Loading has started. Please wait...')
-             flag = scan_data_processing.main(scanDir, work_dir)
+             if scan_dir!="":
+                 MainWindow.statusBar().showMessage('"' + scan_dir + '" is chosen. Loading has started. Please wait...')
+             else:
+                 scan_dir = work_dir
+                 info_message(self, "Work directory will be used for loading scans and extracting phases.")
+                 MainWindow.statusBar().showMessage('"' + work_dir + '" is chosen. Loading has started. Please wait...')
+             flag = scan_data_processing.main(scan_dir, work_dir)
              if not flag:
                  info_message(self, "Loading of scans is successfully finished. You can now proceed to preprocessing of phases.")
                  MainWindow.statusBar().showMessage('Scans are loaded. You can now proceed to preprocessing of phases.')
@@ -1126,10 +1222,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def preproc(self):
         if work_dir!="":
             import data_preprocessing
-            fileDir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose directory with Phases (required file name format: native/arterial/vein/delayed.mha)")
-            if fileDir!="":
+            # file_dir = '' + work_dir + '/series/phases'
+            file_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose directory with Phases (required file name format: native/arterial/vein/delayed.mha)")
+            if file_dir!="":
                 MainWindow.statusBar().showMessage('Processing has started. Please wait...')
-                flag = data_preprocessing.main(fileDir, work_dir)
+                flag = data_preprocessing.main(file_dir, work_dir)
                 if not flag:
                     info_message(self, "Preprocessing is successfully finished. All series are now ready for segmentation.")
                     MainWindow.statusBar().showMessage('All series are now ready for segmentation.')
@@ -1174,7 +1271,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                 import export_images
                 MainWindow.statusBar().showMessage('Exporting... Please wait.')
                 export_images.main(work_dir + "/segmentation results/whole_segmentation.mhd", work_dir)
-                MainWindow.statusBar().showMessage('Rendering results are saved to .stl and .jpg files.')
+                MainWindow.statusBar().showMessage('Rendered results are saved to .stl and .jpg files.')
             else:
                 popup_message(self, "There is no segmented data!")
         else:
@@ -1191,7 +1288,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                     info_message(self, "Segmentation of Delayed Phase is done. You can now see results and export images using buttons below.")
                     MainWindow.statusBar().showMessage('Segmentation of Delayed Phase is done. You can see results by clicking on \"3D View of Segmented Data\".')
                 else:
-                    popup_message(self, "Segmentation processes of bones and stone in \"Organ Segmentation\" need to be done before \"Delayed Phase Segmentation!\"")
+                    popup_message(self, "Segmentation processes of bones and stone in \"Manual Segmentation\" need to be done before \"Delayed Phase Segmentation!\"")
             else:
                 popup_message(self, "There are no necessary preprocessed phases in the work directory!\n"
                               "Finish Preprocessing of Phases or choose different directory.") 
@@ -1217,9 +1314,63 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                 import export_del_phase_images
                 MainWindow.statusBar().showMessage('Exporting of Delayed Phase images... Please wait.')
                 export_del_phase_images.main(work_dir + "/delayed phase segmentation results/del_phase_segmentation.mhd", work_dir)
-                MainWindow.statusBar().showMessage('Rendering results are saved to .stl and .jpg files. You can repeat the whole process on different data.')
+                MainWindow.statusBar().showMessage('Rendered results are saved to .stl and .jpg files. You can repeat the whole process on different data.')
             else:
                 popup_message(self, "There is no segmented data for delayed phase!")
+        else:
+            popup_message(self, "You have to choose work directory!")
+            
+    # Automatic segmentation functions
+    def start_segm3(self):        
+        if work_dir!="":
+            if os.path.exists(work_dir + "/data/delayed_phase_preprocessed.mha") & os.path.exists(work_dir + "/data/native_phase_preprocessed.mha"):
+                
+                # try:                
+                import auto_segm
+                MainWindow.statusBar().showMessage('Automatic segmentation has started. Please wait...')
+                
+                import time
+                start = time.time()   
+                
+                auto_segm.main(work_dir)
+                
+                end = time.time()
+                print("time = " + str(end - start))
+                
+                info_message(self, "Automatic segmentation is done. You can now see results and export images using buttons below.")
+                MainWindow.statusBar().showMessage('Automatic segmentation is done. You can see results by clicking on \"3D View of Segmented Data\".')
+                    
+                # except:
+                # popup_message(self, "Automatic segmentation encountered an unknown error.")
+                # MainWindow.statusBar().showMessage('Automatic segmentation encountered an unknown error. Please try again.')
+            else:
+                popup_message(self, "There are no necessary preprocessed phases in the work directory!\n"
+                              "Finish Preprocessing of Phases or choose different directory.") 
+                MainWindow.statusBar().showMessage('Finish Preprocessing of Phases or choose different work directory.')
+        else:
+            popup_message(self, "You have to choose work directory!")
+            
+    def render3(self):
+        if work_dir!="":
+            if os.path.exists(work_dir + "/automatic segmentation results"):
+                import auto_rendering
+                MainWindow.statusBar().showMessage('Rendering of automatic segmentation... Please wait.')
+                auto_rendering.main(work_dir + "/automatic segmentation results/auto_segmentation.mhd")
+                MainWindow.statusBar().showMessage('')
+            else:
+                popup_message(self, "There is no auto-segmented data!")
+        else:
+            popup_message(self, "You have to choose work directory!")
+            
+    def export_images3(self):
+        if work_dir!="":
+            if os.path.exists(work_dir + "/automatic segmentation results"):
+                import export_auto_images
+                MainWindow.statusBar().showMessage('Exporting of Automatic Segmentation images... Please wait.')
+                export_auto_images.main(work_dir + "/automatic segmentation results/auto_segmentation.mhd", work_dir)
+                MainWindow.statusBar().showMessage('Rendered results are saved to .stl and .jpg files. You can repeat the whole process on different data.')
+            else:
+                popup_message(self, "There is no auto-segmented data!")
         else:
             popup_message(self, "You have to choose work directory!")
             

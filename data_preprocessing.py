@@ -8,7 +8,7 @@ Created on January 2022
 Preprocessing of phases
         - Rescaling intensity
         - Median filtering
-        - Corregistration
+        - Coregistration
 """
 import SimpleITK as sitk
 import os
@@ -109,13 +109,13 @@ def main(arg, main_dir):
         data_preprocessing_2(img_vein, main_dir, "vein")
     except:
         flag = 1;
-    
+        print('Vein phase is missing!')
     try:
         img_del = sitk.ReadImage(arg + "/delayed.mha")
         data_preprocessing_2(img_del, main_dir, "delayed")
     except:
         flag = 2;
-    
+        print('Delayed phase is missing!')
         
     return flag # 0 for completely sucessful processing
                 # 1 for missing unnecessary phases
